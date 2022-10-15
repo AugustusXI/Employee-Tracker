@@ -1,7 +1,6 @@
 const inquirer = require("inquirer");
 const mySQL = require("mysql2");
 require("console.table");
-const employees = require("./controllers/employees");
 require("dotenv").config();
 const express = require("express");
 
@@ -76,4 +75,96 @@ function welcome() {
           updateEmployee();
       }
     });
+}
+// -------------------------------
+function viewAllEmployees() {
+  let sql = `SELECT * FROM employee`;
+  connection.query(sql, function (err, result) {
+    if (err) throw err;
+    console.table(result, ["firstName", "lastName", "department"]);
+  });
+  welcome();
+}
+
+// --------------------------------
+function viewDepartment() {
+  var query = `SELECT d.id, d.name, r.salary AS budget
+  FROM employee e
+  LEFT JOIN role r
+	ON e.role_id = r.id
+  LEFT JOIN department d
+  ON d.id = r.department_id
+  GROUP BY d.id, d.name`;
+
+  connection.query(query, function (err, res) {
+    if (err) throw err;
+
+    const departmentChoices = res.map((data) => ({
+      value: data.id,
+      name: data.name,
+    }));
+
+    console.table(res);
+    // connection.query("SELECT * FROM departments", function (err, result, fields) {
+    //   if (err) throw err;
+    // });
+    // let departmentList = [];
+    // result.forEach((element) => {
+    //   departmentList.push({
+    //     name: element.name,
+    //     value: element.name,
+    //   });
+    // });
+  });
+}
+function viewRole(assignRole, updateRole) {
+  inquirer
+    .prompt([
+      {
+        type: "list",
+        name: "employeeId",
+        message: "assign an employee a role.",
+        choices: assignRole,
+      },
+      {
+        type: "list",
+        name: "roleId",
+        message: "update a role.",
+        choices: updateRole,
+      },
+    ])
+    .then(function (answer) {
+      var query = `UPDATE employee SET role_id = ? WHERE id = ?`;
+      connection.query(
+        query,
+        [answer.roleId, answer.employeeId],
+        function (err, res) {
+          if (err) throw err;
+
+          welcome();
+        }
+      );
+    });
+}
+function addRole() {
+  var query = `SELECT d.id, d.name, r.salary AS budget
+  FROM employee e
+  LEFT JOIN role r
+	ON e.role_id = r.id
+  LEFT JOIN department d
+  ON d.id = r.department_id
+  GROUP BY d.id, d.name`;
+
+  connection.query(query, function (err, res) {
+    if (err) throw err;
+
+    const departmentChoices = res.map(({ id, name }) => ({
+      value: id,
+      name: `${id} ${name}`,
+    }));
+
+    console.table(res);
+
+    promptAddRole(departmentChoices);
+  });
 }
